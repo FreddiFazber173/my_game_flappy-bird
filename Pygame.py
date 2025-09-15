@@ -1,22 +1,26 @@
 import pygame
 import sys
 import random
+import os
 
 pygame.init()
 pygame.mixer.init()
 pygame.display.set_caption('Флаппи Берд')
 window_size = (1200, 700)
 window_surface = pygame.display.set_mode((window_size))
+screen = window_surface  # для удобства в функциях
 background = pygame.Surface((window_size))
 background.fill(pygame.Color('#FFFFFF'))
+
+
 cartinka = pygame.image.load("R.jpg")
 cartinka = pygame.transform.scale(cartinka, window_size)
+
 pygame.mixer.music.load('muzic_fon.mp3')
-pygame.mixer.music.play(-1)  # музыка на повтор
+pygame.mixer.music.play(-1)
 sound = pygame.mixer.Sound('sfx_wing.mp3')
 sound1 = pygame.mixer.Sound('sfx_point.mp3')
 sound2 = pygame.mixer.Sound('sfx_die.mp3')
-
 
 button_font = pygame.font.SysFont('Verdana', 15)
 button_text_color = pygame.Color("black")
@@ -30,6 +34,52 @@ button3_color = pygame.Color("gray")
 button3_rect = pygame.Rect(520, 385, 200, 100)
 button3_text = button3_font.render('Выход', True, button3_text_color)
 
+death_bg = pygame.image.load("ekrancmerti_.jpg")
+death_bg = pygame.transform.scale(death_bg, window_size)
+
+def draw_button(text, x, y, w, h, color, hover_color):
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+    if x < mouse[0] < x + w and y < mouse[1] < y + h:
+        pygame.draw.rect(screen, hover_color, (x, y, w, h))
+        if click[0] == 1:
+            return True
+    else:
+        pygame.draw.rect(screen, color, (x, y, w, h))
+    font = pygame.font.Font(None, 40)
+    text_surf = font.render(text, True, (0, 0, 0))
+    text_rect = text_surf.get_rect(center=(x + w/2, y + h/2))
+    screen.blit(text_surf, text_rect)
+    return False
+
+def game_over_screen(score, best_score, game_instance):
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+        screen.blit(death_bg, (0, 0))
+        font = pygame.font.Font(None, 70)
+        text = font.render("Ты сдох как и твоя мама в канаве хахахаха", True, (255, 255, 255))
+        screen.blit(text, (window_size[0]//2 - 500, 150))
+
+        font2 = pygame.font.Font(None, 50)
+        score_text = font2.render(f"Твой счёт: {score}", True, (255, 255, 255))
+        best_text = font2.render(f"Рекорд: {best_score}", True, (255, 255, 0))
+        screen.blit(score_text, (window_size[0]//2 - 130, 250))
+        screen.blit(best_text, (window_size[0]//2 - 130, 300))
+
+        if draw_button("играть", 450, 400, 300, 60, (200, 200, 200), (170, 170, 170)):
+            waiting = False
+            game_instance.reset_game()
+
+        if draw_button("изыде нахуй", 450, 500, 300, 60, (200, 200, 200), (170, 170, 170)):
+            pygame.quit()
+            sys.exit()
+
+        pygame.display.flip()
 
 def main_menu():
     menu = True
@@ -38,12 +88,10 @@ def main_menu():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if button_rect.collidepoint(event.pos):
                     bird = Game()
                     bird.run()
-
                 if button3_rect.collidepoint(event.pos):
                     pygame.quit()
                     exit()
@@ -51,13 +99,9 @@ def main_menu():
         window_surface.blit(background, (0, 0))
         window_surface.blit(cartinka, (0, 0))
         pygame.draw.rect(window_surface, button_color, button_rect)
-        button_rect_center = button_text.get_rect(center=button_rect.center)
-        window_surface.blit(button_text, button_rect_center)
-
+        window_surface.blit(button_text, button_text.get_rect(center=button_rect.center))
         pygame.draw.rect(window_surface, button3_color, button3_rect)
-        button3_rect_center = button3_text.get_rect(center=button3_rect.center)
-        window_surface.blit(button3_text, button3_rect_center)
-
+        window_surface.blit(button3_text, button3_text.get_rect(center=button3_rect.center))
         pygame.display.flip()
 
 
@@ -77,7 +121,7 @@ class Pipe:
             sound1.play()
             self.x = 1200
             self.offset = random.randint(*self.offset_range)
-            return True  # труба пройдена
+            return True
         return False
 
     def draw(self, screen):
@@ -94,8 +138,8 @@ class Pipe:
 
 class Game:
     def __init__(self):
-        self.screen = pygame.display.set_mode((1200, 700))
-        self.bird = pygame.Rect(65, 50, 50, 50)
+        self.screen = pygame.display.set_mode(window_size)
+        self.bird = pygame.Rect(60, 30, 45, 30)
         self.background = pygame.image.load("fon.png").convert()
         self.birdSprites = [
             pygame.image.load("1.png").convert_alpha(),
@@ -110,13 +154,26 @@ class Game:
         self.sprite = 0
         self.counter = 0
 
-        # создаем список труб
-        self.pipes = [
-            Pipe(400),
-            Pipe(700),
-            Pipe(1000),
-            Pipe(1300)
-        ]
+        self.pipes = [Pipe(400), Pipe(700), Pipe(1000), Pipe(1300)]
+
+        if os.path.exists("best_score.txt"):
+            with open("best_score.txt", "r") as f:
+                self.best_score = int(f.read())
+        else:
+            self.best_score = 0
+
+    def reset_game(self):
+        self.birdY = 350
+        self.bird[1] = 350
+        self.gravity = 0
+        self.jump = 0
+        self.counter = 0
+        self.dead = False
+        x = 400
+        for pipe in self.pipes:
+            pipe.x = x
+            pipe.offset = random.randint(*pipe.offset_range)
+            x += 300
 
     def birdUpdate(self):
         if self.jump:
@@ -130,25 +187,19 @@ class Game:
 
         for pipe in self.pipes:
             upRect, downRect = pipe.get_rects()
-            if upRect.colliderect(self.bird) or downRect.colliderect(self.bird):
+            if upRect.colliderect(self.bird) or downRect.colliderect(self.bird) or not (0 < self.bird[1] < 720):
                 self.dead = True
                 sound2.play()
-                main_menu().run()
+                self.death_handler()
 
-        if not 0 < self.bird[1] < 720:
-            sound2.play()
-            main_menu().run()
-            self.bird[1] = 50
-            self.birdY = 50
-            self.dead = False
-            self.counter = 0
-            self.gravity = 5
-            # Сбрасываем трубы
-            x = 400
-            for pipe in self.pipes:
-                pipe.x = x
-                pipe.offset = random.randint(*pipe.offset_range)
-                x += 300
+    def death_handler(self):
+        if self.counter > self.best_score:
+            self.best_score = self.counter
+            with open("best_score.txt", "w") as f:
+                f.write(str(self.best_score))
+
+
+        game_over_screen(self.counter, self.best_score, self)
 
     def run(self):
         clock = pygame.time.Clock()
@@ -167,7 +218,7 @@ class Game:
             self.screen.fill((255, 255, 255))
             self.screen.blit(self.background, (0, 0))
 
-            # Обновляем и рисуем трубы
+
             for pipe in self.pipes:
                 passed = pipe.update()
                 if passed:
@@ -186,8 +237,10 @@ class Game:
             self.birdUpdate()
 
             # Счет
-            value = score_font.render("Ваш счет: " + str(self.counter), True, "red")
+            value = score_font.render("Твой счет: " + str(self.counter), True, "red")
+            best_text = score_font.render("Рекорд: " + str(self.best_score), True, "blue")
             self.screen.blit(value, (500, 0))
+            self.screen.blit(best_text, (500, 40))
 
             pygame.display.update()
 
