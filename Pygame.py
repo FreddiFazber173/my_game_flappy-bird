@@ -62,7 +62,7 @@ def game_over_screen(score, best_score, game_instance):
 
         screen.blit(death_bg, (0, 0))
         font = pygame.font.Font(None, 70)
-        text = font.render("Ты сдох как и твоя мама в канаве хахахаха", True, (255, 255, 255))
+        text = font.render("гейм овер", True, (255, 255, 255))
         screen.blit(text, (window_size[0]//2 - 500, 150))
 
         font2 = pygame.font.Font(None, 50)
@@ -75,7 +75,7 @@ def game_over_screen(score, best_score, game_instance):
             waiting = False
             game_instance.reset_game()
 
-        if draw_button("изыде нахуй", 450, 500, 300, 60, (200, 200, 200), (170, 170, 170)):
+        if draw_button("уходи дверь закрой", 450, 500, 300, 60, (200, 200, 200), (170, 170, 170)):
             pygame.quit()
             sys.exit()
 
